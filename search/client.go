@@ -1,19 +1,56 @@
 package search
 
 import (
+	"fmt"
+	"github.com/ONSdigital/dp-dd-search-api/model"
 	"gopkg.in/olivere/elastic.v3"
+	"reflect"
 )
 
-type Client interface {
-	Index(index string, documentType string, id string, body interface{}) error
+// QueryClient - interface for query functions on the search client.
+type QueryClient interface {
+	Query(term string) ([]model.Document, error)
 	Stop()
 }
 
-type ElasticSearchClient struct {
+type elasticSearchClient struct {
 	client *elastic.Client
+	index  string
 }
 
-func NewClient(nodes []string) (Client, error) {
+// Query - run the given term as a search query
+func (elasticSearch *elasticSearchClient) Query(term string) ([]model.Document, error) {
+	query := elastic.NewQueryStringQuery(term)
+	result, err := elasticSearch.client.Search().
+		Index(elasticSearch.index).
+		Query(query).
+		From(0).Size(10).
+		Pretty(true).
+		Do()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Query took %d milliseconds\n", result.TookInMillis)
+
+	var document model.Document
+	var documents []model.Document
+	for _, item := range result.Each(reflect.TypeOf(document)) {
+		t := item.(model.Document)
+		fmt.Printf("Entry %+v\n", t)
+		documents = append(documents, t)
+	}
+
+	return documents, nil
+}
+
+// Stop the search client
+func (elasticSearch *elasticSearchClient) Stop() {
+	elasticSearch.client.Stop()
+}
+
+// NewClient - Create a new elastic search client instance of QueryClient
+func NewClient(nodes []string, index string) (QueryClient, error) {
 	client, err := elastic.NewClient(
 		elastic.SetURL(nodes...),
 		elastic.SetMaxRetries(5))
@@ -21,21 +58,5 @@ func NewClient(nodes []string) (Client, error) {
 		return nil, err
 	}
 
-	return &ElasticSearchClient{client}, nil
-}
-
-func (elasticSearch *ElasticSearchClient) Index(index string, documentType string, id string, body interface{}) error {
-	_, err := elasticSearch.client.Index().
-		Index(index).
-		Type(documentType).
-		Id(id).
-		BodyJson(body).
-		Refresh(true).
-		Do()
-
-	return err
-}
-
-func (elasticSearch *ElasticSearchClient) Stop() {
-	elasticSearch.client.Stop()
+	return &elasticSearchClient{client, index}, nil
 }

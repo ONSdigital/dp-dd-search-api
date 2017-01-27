@@ -22,24 +22,24 @@ cd dp-compose
 ./run.sh
 ```
 
-##### Run the search indexer
+##### Run the search api
  ```
  make debug
  ```
 
-##### Send a search index actualRequest via Kafka (assumes Kafka is installed)
-```
-kafka-console-producer --broker-list localhost:9092 --topic search-index-actualRequest
-{"type":"testtype","id":"123","data":{"some key":"some value"}}
-```
+##### Query the search api
+ ```
+curl localhost:20051/search\?q\=armed
+ ```
+ 
+ or navigate to <http://localhost:20051/search?q=armed>
+ 
 
 ### Configuration
 
 | Environment variable | Default                                        | Description
 | -------------------- | ---------------------------------------------- | ----------------------------------------------------
-| KAFKA_ADDR           | http://localhost:9092                          | The Kafka broker addresses comma separated
-| KAFKA_CONSUMER_GROUP | search-index-actualRequest                           | The Kafka consumer group to consume messages from
-| FILE_COMPLETE_TOPIC  | search-index-actualRequest                           | The Kafka topic to consume messages from
+| BIND_ADDR            | :20051                                         | The port to serve HTTP requests
 | ELASTIC_SEARCH_NODES | http://127.0.0.1:9200                          | The Elastic Search node addresses comma separated
 | ELASTIC_SEARCH_INDEX | ons                                            | The Elastic Search index to update
 

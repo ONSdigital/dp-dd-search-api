@@ -1,62 +1,87 @@
 package main
 
 import (
+	"github.com/ONSdigital/dp-dd-search-api/config"
+	"github.com/ONSdigital/dp-dd-search-api/handler"
 	"github.com/ONSdigital/dp-dd-search-api/search"
-	"github.com/ONSdigital/dp-publish-pipeline/utils"
+	"github.com/ONSdigital/go-ns/handlers/healthcheck"
+	"github.com/ONSdigital/go-ns/handlers/requestID"
+	"github.com/ONSdigital/go-ns/handlers/timeout"
 	"github.com/ONSdigital/go-ns/log"
-	"github.com/bsm/sarama-cluster"
+	"github.com/gorilla/pat"
+	"github.com/justinas/alice"
+	"net/http"
 	"os"
 	"os/signal"
+	"time"
 )
 
 func main() {
 
-	kafkaBrokers := []string{utils.GetEnvironmentVariable("KAFKA_ADDR", "localhost:9092")}
-	kafkaConsumerTopic := utils.GetEnvironmentVariable("KAFKA_CONSUMER_TOPIC", "search-index-request")
-	kafkaConsumerGroup := utils.GetEnvironmentVariable("KAFKA_CONSUMER_GROUP", "search-index-request")
-	elasticSearchNodes := []string{utils.GetEnvironmentVariable("ELASTIC_SEARCH_NODES", "http://127.0.0.1:9200")}
-	elasticSearchIndex := utils.GetEnvironmentVariable("ELASTIC_SEARCH_INDEX", "ons")
-
-	log.Debug("Configuration values:", log.Data{
-		"KAFKA_ADDR":           kafkaBrokers,
-		"KAFKA_CONSUMER_TOPIC": kafkaConsumerTopic,
-		"KAFKA_CONSUMER_GROUP": kafkaConsumerGroup,
-		"ELASTIC_SEARCH_NODES": elasticSearchNodes,
-		"ELASTIC_SEARCH_INDEX": elasticSearchIndex,
-	})
+	config.Load()
 
 	log.Debug("Creating search search client.", nil)
-	searchClient, err := search.NewClient(elasticSearchNodes)
+	searchClient, err := search.NewClient(config.ElasticSearchNodes, config.ElasticSearchIndex)
 	if err != nil {
 		log.Error(err, log.Data{"message": "Failed to create Elastic Search client."})
-		return
+		os.Exit(1)
 	}
-	log.Debug("Elastic Search client Created successfully.", nil)
 
-	log.Debug("Creating Kafka consumer.", nil)
-	consumerConfig := cluster.NewConfig()
-	kafkaConsumer, err := cluster.NewConsumer(kafkaBrokers, kafkaConsumerGroup, []string{kafkaConsumerTopic}, consumerConfig)
-	if err != nil {
-		log.Error(err, log.Data{"message": "An error occured creating the Kafka consumer"})
-		return
-	}
-	log.Debug("Kafka consumer created.", nil)
+	handler.SearchClient = searchClient
+
+	exitCh := make(chan struct{})
+
+	listenForHTTPRequests(exitCh)
+	waitForInterrupt(searchClient, exitCh)
+}
+
+func listenForHTTPRequests(exitCh chan struct{}) {
+
+	go func() {
+		router := pat.New()
+		router.Get("/healthcheck", healthcheck.Handler)
+		router.Get("/search", handler.Search)
+		log.Debug("Starting HTTP server", log.Data{"bind_addr": config.BindAddr})
+
+		middleware := []alice.Constructor{
+			requestID.Handler(16),
+			log.Handler,
+			timeout.Handler(10 * time.Second),
+		}
+		alice := alice.New(middleware...).Then(router)
+
+		server := &http.Server{
+			Addr:         config.BindAddr,
+			Handler:      alice,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+		}
+		if err := server.ListenAndServe(); err != nil {
+			log.Error(err, nil)
+		}
+
+		log.Debug("HTTP server has stopped.", nil)
+		exitCh <- struct{}{}
+	}()
+}
+
+func waitForInterrupt(searchClient search.QueryClient, exitCh chan struct{}) {
 
 	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt)
-	for {
-		select {
-		case msg := <-kafkaConsumer.Messages():
-			search.ProcessIndexRequest(msg.Value, searchClient, elasticSearchIndex)
-		case <-signals:
-			log.Debug("Shutting down...", nil)
-			err = kafkaConsumer.Close()
-			if err != nil {
-				log.Error(err, log.Data{"message": "An error occured closing the Kafka consumer"})
-			}
-			searchClient.Stop()
-			log.Debug("Service stopped", nil)
-			return
-		}
+	signal.Notify(signals, os.Interrupt, os.Kill)
+
+	select {
+	case <-signals:
+		log.Debug("OS signal receieved.", nil)
+		shutdown(searchClient)
+	case <-exitCh:
+		log.Debug("Notification received on exit channel.", nil)
+		shutdown(searchClient)
 	}
+}
+
+func shutdown(searchClient search.QueryClient) {
+	log.Debug("Shutting down.", nil)
+	searchClient.Stop()
+	log.Debug("Service stopped", nil)
 }
