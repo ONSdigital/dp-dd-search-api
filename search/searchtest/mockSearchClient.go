@@ -1,6 +1,5 @@
 package searchtest
 
-import ()
 import (
 	"github.com/ONSdigital/dp-dd-search-api/model"
 	"github.com/ONSdigital/dp-dd-search-api/search"
