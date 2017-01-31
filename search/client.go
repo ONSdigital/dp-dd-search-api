@@ -20,13 +20,20 @@ type elasticSearchClient struct {
 
 // Query - run the given term as a search query
 func (elasticSearch *elasticSearchClient) Query(term string) ([]model.Document, error) {
-	query := elastic.NewQueryStringQuery(term)
-	result, err := elasticSearch.client.Search().
+
+	builder := elasticSearch.client.Search()
+
+	if len(term) > 0 {
+		query := elastic.NewQueryStringQuery(term)
+		builder.Query(query)
+	}
+
+	result, err := builder.
 		Index(elasticSearch.index).
-		Query(query).
 		From(0).Size(10).
 		Pretty(true).
 		Do()
+
 	if err != nil {
 		return nil, err
 	}
