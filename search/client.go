@@ -9,7 +9,7 @@ import (
 
 // QueryClient - interface for query functions on the search client.
 type QueryClient interface {
-	Query(term string) ([]model.Document, error)
+	Query(term string) (*model.SearchResponse, error)
 	Stop()
 }
 
@@ -19,7 +19,7 @@ type elasticSearchClient struct {
 }
 
 // Query - run the given term as a search query
-func (elasticSearch *elasticSearchClient) Query(term string) ([]model.Document, error) {
+func (elasticSearch *elasticSearchClient) Query(term string) (*model.SearchResponse, error) {
 
 	builder := elasticSearch.client.Search()
 
@@ -41,14 +41,19 @@ func (elasticSearch *elasticSearchClient) Query(term string) ([]model.Document, 
 	fmt.Printf("Query took %d milliseconds\n", result.TookInMillis)
 
 	var document model.Document
-	var documents []model.Document
+	var documents []*model.Document
 	for _, item := range result.Each(reflect.TypeOf(document)) {
 		t := item.(model.Document)
 		fmt.Printf("Entry %+v\n", t)
-		documents = append(documents, t)
+		documents = append(documents, &t)
 	}
 
-	return documents, nil
+	response := &model.SearchResponse{
+		TotalResults: result.TotalHits(),
+		Results:      documents,
+	}
+
+	return response, nil
 }
 
 // Stop the search client
