@@ -46,6 +46,7 @@ func listenForHTTPRequests(exitCh chan struct{}) {
 		middleware := []alice.Constructor{
 			requestID.Handler(16),
 			log.Handler,
+			corsHandler,
 			timeout.Handler(10 * time.Second),
 		}
 		alice := alice.New(middleware...).Then(router)
@@ -63,6 +64,14 @@ func listenForHTTPRequests(exitCh chan struct{}) {
 		log.Debug("HTTP server has stopped.", nil)
 		exitCh <- struct{}{}
 	}()
+}
+
+func corsHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		h.ServeHTTP(w, req)
+	})
 }
 
 func waitForInterrupt(searchClient search.QueryClient, exitCh chan struct{}) {
