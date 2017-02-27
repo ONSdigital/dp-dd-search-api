@@ -20,7 +20,7 @@ type MockSearchClient struct {
 }
 
 // Query - just capture the query request for later assertion.
-func (elasticSearch *MockSearchClient) Query(term string) (*model.SearchResponse, error) {
+func (elasticSearch *MockSearchClient) Query(term string, index string) (*model.SearchResponse, error) {
 
 	if elasticSearch.CustomQueryFunc != nil {
 		return elasticSearch.CustomQueryFunc(term)

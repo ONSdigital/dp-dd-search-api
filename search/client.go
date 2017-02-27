@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/ONSdigital/dp-dd-search-api/model"
 	"gopkg.in/olivere/elastic.v3"
-	"log"
-	"os"
 	"reflect"
 )
 

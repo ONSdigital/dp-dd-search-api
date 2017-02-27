@@ -25,6 +25,12 @@ func Test(t *testing.T) {
 		Type: "dataset",
 	})
 
+	var areas []*model.Document
+	areas = append(areas, &model.Document{
+		ID:   "areaID",
+		Type: "area",
+	})
+
 	mockSearchResponse := &model.SearchResponse{
 		Results:      documents,
 		TotalResults: 2,
@@ -73,6 +79,7 @@ func Test(t *testing.T) {
 				So(actualResponse.TotalResults, ShouldEqual, mockSearchResponse.TotalResults)
 				So(actualResponse.Results[0].ID, ShouldEqual, mockSearchResponse.Results[0].ID)
 				So(actualResponse.Results[1].ID, ShouldEqual, mockSearchResponse.Results[1].ID)
+				So(actualResponse.AreaResults[0].ID, ShouldEqual, mockSearchResponse.AreaResults[0].ID)
 			})
 		})
 	})

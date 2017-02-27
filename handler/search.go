@@ -33,7 +33,9 @@ func Search(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	results.AreaResults = areaResults.Results
+	if areaResults != nil {
+		results.AreaResults = areaResults.Results
+	}
 
 	responseJSON, err := json.Marshal(results)
 	if err != nil {
