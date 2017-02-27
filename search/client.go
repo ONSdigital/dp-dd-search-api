@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/ONSdigital/dp-dd-search-api/model"
 	"gopkg.in/olivere/elastic.v3"
+	"log"
+	"os"
 	"reflect"
 )
 
@@ -43,7 +45,6 @@ func (elasticSearch *elasticSearchClient) Query(term string, index string) (*mod
 	var documents []*model.Document
 	for _, item := range result.Each(reflect.TypeOf(document)) {
 		t := item.(model.Document)
-		fmt.Printf("Entry %+v\n", t)
 		documents = append(documents, &t)
 	}
 
@@ -62,9 +63,16 @@ func (elasticSearch *elasticSearchClient) Stop() {
 
 // NewClient - Create a new elastic search client instance of QueryClient
 func NewClient(nodes []string) (QueryClient, error) {
+
+	//logger := log.New(os.Stdout, "", log.LstdFlags)
 	client, err := elastic.NewClient(
 		elastic.SetURL(nodes...),
 		elastic.SetMaxRetries(5))
+
+	// Add these lines into the client initialisation to enable query logging.
+	//elastic.SetInfoLog(logger)
+	//elastic.SetTraceLog(logger)
+
 	if err != nil {
 		return nil, err
 	}
