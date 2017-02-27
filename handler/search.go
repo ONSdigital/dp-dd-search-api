@@ -15,7 +15,7 @@ func Search(w http.ResponseWriter, req *http.Request) {
 
 	query := req.URL.Query().Get("q")
 
-	results, err := SearchClient.Query(query)
+	results, err := SearchClient.Query(query, "dd")
 	if err != nil {
 		log.Error(err, log.Data{
 			"message": "Error running a search query.",
@@ -23,6 +23,17 @@ func Search(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	areaResults, err := SearchClient.Query(query, "areas")
+	if err != nil {
+		log.Error(err, log.Data{
+			"message": "Error running a search query.",
+			"query":   query})
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	results.AreaResults = areaResults.Results
 
 	responseJSON, err := json.Marshal(results)
 	if err != nil {

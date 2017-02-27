@@ -21,7 +21,7 @@ func main() {
 	config.Load()
 
 	log.Debug("Creating search search client.", nil)
-	searchClient, err := search.NewClient(config.ElasticSearchNodes, config.ElasticSearchIndex)
+	searchClient, err := search.NewClient(config.ElasticSearchNodes)
 	if err != nil {
 		log.Error(err, log.Data{"message": "Failed to create Elastic Search client."})
 		os.Exit(1)

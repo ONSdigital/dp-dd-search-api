@@ -9,17 +9,16 @@ import (
 
 // QueryClient - interface for query functions on the search client.
 type QueryClient interface {
-	Query(term string) (*model.SearchResponse, error)
+	Query(term string, index string) (*model.SearchResponse, error)
 	Stop()
 }
 
 type elasticSearchClient struct {
 	client *elastic.Client
-	index  string
 }
 
 // Query - run the given term as a search query
-func (elasticSearch *elasticSearchClient) Query(term string) (*model.SearchResponse, error) {
+func (elasticSearch *elasticSearchClient) Query(term string, index string) (*model.SearchResponse, error) {
 
 	builder := elasticSearch.client.Search()
 
@@ -29,7 +28,7 @@ func (elasticSearch *elasticSearchClient) Query(term string) (*model.SearchRespo
 	}
 
 	result, err := builder.
-		Index(elasticSearch.index).
+		Index(index).
 		From(0).Size(10).
 		Pretty(true).
 		Do()
@@ -62,7 +61,7 @@ func (elasticSearch *elasticSearchClient) Stop() {
 }
 
 // NewClient - Create a new elastic search client instance of QueryClient
-func NewClient(nodes []string, index string) (QueryClient, error) {
+func NewClient(nodes []string) (QueryClient, error) {
 	client, err := elastic.NewClient(
 		elastic.SetURL(nodes...),
 		elastic.SetMaxRetries(5))
@@ -70,5 +69,5 @@ func NewClient(nodes []string, index string) (QueryClient, error) {
 		return nil, err
 	}
 
-	return &elasticSearchClient{client, index}, nil
+	return &elasticSearchClient{client}, nil
 }
