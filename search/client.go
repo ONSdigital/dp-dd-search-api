@@ -9,17 +9,16 @@ import (
 
 // QueryClient - interface for query functions on the search client.
 type QueryClient interface {
-	Query(term string) ([]model.Document, error)
+	Query(term string, index string) (*model.SearchResponse, error)
 	Stop()
 }
 
 type elasticSearchClient struct {
 	client *elastic.Client
-	index  string
 }
 
 // Query - run the given term as a search query
-func (elasticSearch *elasticSearchClient) Query(term string) ([]model.Document, error) {
+func (elasticSearch *elasticSearchClient) Query(term string, index string) (*model.SearchResponse, error) {
 
 	builder := elasticSearch.client.Search()
 
@@ -29,7 +28,7 @@ func (elasticSearch *elasticSearchClient) Query(term string) ([]model.Document, 
 	}
 
 	result, err := builder.
-		Index(elasticSearch.index).
+		Index(index).
 		From(0).Size(10).
 		Pretty(true).
 		Do()
@@ -41,14 +40,18 @@ func (elasticSearch *elasticSearchClient) Query(term string) ([]model.Document, 
 	fmt.Printf("Query took %d milliseconds\n", result.TookInMillis)
 
 	var document model.Document
-	var documents []model.Document
+	var documents []*model.Document
 	for _, item := range result.Each(reflect.TypeOf(document)) {
 		t := item.(model.Document)
-		fmt.Printf("Entry %+v\n", t)
-		documents = append(documents, t)
+		documents = append(documents, &t)
 	}
 
-	return documents, nil
+	response := &model.SearchResponse{
+		TotalResults: result.TotalHits(),
+		Results:      documents,
+	}
+
+	return response, nil
 }
 
 // Stop the search client
@@ -57,13 +60,20 @@ func (elasticSearch *elasticSearchClient) Stop() {
 }
 
 // NewClient - Create a new elastic search client instance of QueryClient
-func NewClient(nodes []string, index string) (QueryClient, error) {
+func NewClient(nodes []string) (QueryClient, error) {
+
+	//logger := log.New(os.Stdout, "", log.LstdFlags)
 	client, err := elastic.NewClient(
 		elastic.SetURL(nodes...),
 		elastic.SetMaxRetries(5))
+
+	// Add these lines into the client initialisation to enable query logging.
+	//elastic.SetInfoLog(logger)
+	//elastic.SetTraceLog(logger)
+
 	if err != nil {
 		return nil, err
 	}
 
-	return &elasticSearchClient{client, index}, nil
+	return &elasticSearchClient{client}, nil
 }

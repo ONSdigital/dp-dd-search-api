@@ -18,8 +18,8 @@ var ElasticSearchIndex string
 // Load any defined environment variables into the configuration.
 func Load() {
 	BindAddr = getEnvironmentVariable("BIND_ADDR", ":20051")
-	ElasticSearchNodes = strings.Split(getEnvironmentVariable("ELASTIC_SEARCH_NODES", "http://127.0.0.1:9200"), ",")
-	ElasticSearchIndex = getEnvironmentVariable("ELASTIC_SEARCH_INDEX", "ons")
+	ElasticSearchNodes = strings.Split(getEnvironmentVariable("ELASTIC_SEARCH_NODES", "http://localhost:9200"), ",")
+	ElasticSearchIndex = getEnvironmentVariable("ELASTIC_SEARCH_INDEX", "dd")
 
 	log.Debug("Loaded configuration values:", log.Data{
 		"BIND_ADDR":            BindAddr,
