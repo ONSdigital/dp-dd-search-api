@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"github.com/ONSdigital/dp-dd-search-api/model"
 	"github.com/ONSdigital/dp-dd-search-api/search"
 	"github.com/ONSdigital/go-ns/log"
 	"net/http"
@@ -20,8 +21,8 @@ func Search(w http.ResponseWriter, req *http.Request) {
 		log.Error(err, log.Data{
 			"message": "Error running a search query.",
 			"query":   query})
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		results = &model.SearchResponse{}
+		results.Results = make([]*model.Document, 0)
 	}
 
 	areaResults, err := SearchClient.Query(query, "areas")
@@ -29,8 +30,7 @@ func Search(w http.ResponseWriter, req *http.Request) {
 		log.Error(err, log.Data{
 			"message": "Error running a search query.",
 			"query":   query})
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		results.AreaResults = make([]*model.Document, 0)
 	}
 
 	if areaResults != nil {

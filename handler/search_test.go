@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/ONSdigital/dp-dd-search-api/config"
 	"github.com/ONSdigital/dp-dd-search-api/handler"
 	"github.com/ONSdigital/dp-dd-search-api/model"
 	"github.com/ONSdigital/dp-dd-search-api/search/searchtest"
@@ -33,6 +34,7 @@ func Test(t *testing.T) {
 
 	mockSearchResponse := &model.SearchResponse{
 		Results:      documents,
+		AreaResults:  areas,
 		TotalResults: 2,
 	}
 
@@ -64,7 +66,7 @@ func Test(t *testing.T) {
 		Convey("When the query handler is called", func() {
 
 			mockSearchClient := searchtest.NewMockSearchClient()
-			mockSearchClient.CustomQueryFunc = func(term string) (*model.SearchResponse, error) {
+			mockSearchClient.CustomQueryFunc = func(term string, index string) (*model.SearchResponse, error) {
 				return mockSearchResponse, nil
 			}
 			handler.SearchClient = mockSearchClient
@@ -93,14 +95,49 @@ func Test(t *testing.T) {
 		Convey("When the query handler is called and the search client returns an error", func() {
 
 			mockSearchClient := searchtest.NewMockSearchClient()
-			mockSearchClient.CustomQueryFunc = func(term string) (*model.SearchResponse, error) {
+			mockSearchClient.CustomQueryFunc = func(term string, index string) (*model.SearchResponse, error) {
 				return nil, errors.New("search client error")
 			}
 			handler.SearchClient = mockSearchClient
 			handler.Search(recorder, request)
 
-			Convey("Then an internal server error code is returned ", func() {
-				So(recorder.Code, ShouldEqual, http.StatusInternalServerError)
+			Convey("Then the result has an empty results array", func() {
+				So(recorder.Code, ShouldEqual, http.StatusOK)
+
+				actualResponse := &model.SearchResponse{}
+				_ = json.Unmarshal(recorder.Body.Bytes(), actualResponse)
+
+				So(actualResponse.TotalResults, ShouldEqual, 0)
+			})
+		})
+	})
+
+	Convey("Given a search request", t, func() {
+
+		recorder := httptest.NewRecorder()
+		requestBodyReader := bytes.NewReader([]byte("{not a valid document}"))
+		request, _ := http.NewRequest("GET", "/search?q=armed", requestBodyReader)
+
+		Convey("When the query handler is called and the search area client returns an error", func() {
+
+			mockSearchClient := searchtest.NewMockSearchClient()
+			mockSearchClient.CustomQueryFunc = func(term string, index string) (*model.SearchResponse, error) {
+
+				if index == config.ElasticSearchIndex {
+					return mockSearchResponse, nil
+				}
+
+				return nil, errors.New("search client error")
+			}
+			handler.SearchClient = mockSearchClient
+			handler.Search(recorder, request)
+
+			Convey("Then the result has an empty results array", func() {
+				So(recorder.Code, ShouldEqual, http.StatusOK)
+
+				actualResponse := &model.SearchResponse{}
+				_ = json.Unmarshal(recorder.Body.Bytes(), actualResponse)
+				So(len(actualResponse.AreaResults), ShouldEqual, 0)
 			})
 		})
 	})
