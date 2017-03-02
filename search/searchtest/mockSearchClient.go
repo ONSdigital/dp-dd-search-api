@@ -30,5 +30,16 @@ func (elasticSearch *MockSearchClient) Query(term string, index string) (*model.
 	return nil, nil
 }
 
+// Query - just capture the query request for later assertion.
+func (elasticSearch *MockSearchClient) Suggest(term string) (*model.SearchResponse, error) {
+
+	if elasticSearch.CustomQueryFunc != nil {
+		return elasticSearch.CustomQueryFunc(term, "dd")
+	}
+
+	elasticSearch.QueryRequests = append(elasticSearch.QueryRequests, term)
+	return nil, nil
+}
+
 // Stop - mock implementation does nothing.
 func (elasticSearch *MockSearchClient) Stop() {}
