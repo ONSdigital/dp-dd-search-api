@@ -34,6 +34,12 @@ curl localhost:20051/search\?q\=armed
  
  or navigate to <http://localhost:20051/search?q=armed>
  
+#### Query for suggestion
+```
+curl localhost:20051/suggest?q=armed
+```
+
+Note: The suggest endpoint gives far less information and is optimised for auto-completion and quick look searches.
 
 ### Configuration
 
