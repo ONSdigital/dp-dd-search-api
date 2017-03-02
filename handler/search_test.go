@@ -148,7 +148,7 @@ func Test(t *testing.T) {
 	})
 
 
-	Convey("Given a search request", t, func() {
+	Convey("Given a suggest request", t, func() {
 
 		recorder := httptest.NewRecorder()
 		requestBodyReader := bytes.NewReader([]byte("{not a valid document}"))
@@ -158,7 +158,7 @@ func Test(t *testing.T) {
 
 			mockSearchClient := searchtest.NewMockSearchClient()
 			handler.SearchClient = mockSearchClient
-			handler.Search(recorder, request)
+			handler.Suggest(recorder, request)
 
 			Convey("Then the search client is called with the expected parameters", func() {
 				So(recorder.Code, ShouldEqual, http.StatusOK)
@@ -188,9 +188,8 @@ func Test(t *testing.T) {
 				actualResponse := &model.SearchResponse{}
 				_ = json.Unmarshal(recorder.Body.Bytes(), actualResponse)
 
-				So(actualResponse.TotalResults, ShouldEqual, mockSearchResponse.TotalResults)
-				So(actualResponse.Results[0].ID, ShouldEqual, mockSearchResponse.Results[0].ID)
-				So(actualResponse.Results[1].ID, ShouldEqual, mockSearchResponse.Results[1].ID)
+				So(actualResponse.TotalResults, ShouldEqual, mockSuggestResponse.TotalResults)
+				So(actualResponse.Results[0].ID, ShouldEqual, mockSuggestResponse.Results[0].ID)
 			})
 		})
 	})
@@ -208,7 +207,7 @@ func Test(t *testing.T) {
 				return nil, errors.New("search client error")
 			}
 			handler.SearchClient = mockSearchClient
-			handler.Search(recorder, request)
+			handler.Suggest(recorder, request)
 
 			Convey("Then the result has an empty results array", func() {
 				So(recorder.Code, ShouldEqual, http.StatusOK)
@@ -233,13 +232,13 @@ func Test(t *testing.T) {
 			mockSearchClient.CustomQueryFunc = func(term string, index string) (*model.SearchResponse, error) {
 
 				if index == config.ElasticSearchIndex {
-					return mockSearchResponse, nil
+					return mockSuggestResponse, nil
 				}
 
 				return nil, errors.New("search client error")
 			}
 			handler.SearchClient = mockSearchClient
-			handler.Search(recorder, request)
+			handler.Suggest(recorder, request)
 
 			Convey("Then the result has an empty results array", func() {
 				So(recorder.Code, ShouldEqual, http.StatusOK)
