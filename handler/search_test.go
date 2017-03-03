@@ -147,7 +147,6 @@ func Test(t *testing.T) {
 		})
 	})
 
-
 	Convey("Given a suggest request", t, func() {
 
 		recorder := httptest.NewRecorder()

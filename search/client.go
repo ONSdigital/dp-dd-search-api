@@ -70,7 +70,6 @@ func (elasticSearch *elasticSearchClient) Suggest(term string) (*model.SearchRes
 	query := elastic.NewMatchPhrasePrefixQuery("body.title", term)
 	builder.FetchSourceContext(fetchSourceContext).Query(query)
 
-
 	result, err := builder.
 		Index("dd").
 		Size(10).

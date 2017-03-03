@@ -61,7 +61,7 @@ func Suggest(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Error(err, log.Data{
 			"message": "Error running an auto-complete (suggest) query.",
-			"query": query})
+			"query":   query})
 		results = &model.SearchResponse{}
 		results.Results = make([]*model.Document, 0)
 	}
