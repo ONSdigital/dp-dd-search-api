@@ -41,6 +41,7 @@ func listenForHTTPRequests(exitCh chan struct{}) {
 		router := pat.New()
 		router.Get("/healthcheck", healthcheck.Handler)
 		router.Get("/search", handler.Search)
+		router.Get("/suggest", handler.Suggest)
 		log.Debug("Starting HTTP server", log.Data{"bind_addr": config.BindAddr})
 
 		middleware := []alice.Constructor{
