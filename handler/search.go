@@ -15,8 +15,9 @@ var SearchClient search.QueryClient
 func Search(w http.ResponseWriter, req *http.Request) {
 
 	query := req.URL.Query().Get("q")
+	filter := req.URL.Query().Get("filter")
 
-	results, err := SearchClient.Query(query, "dd")
+	results, err := SearchClient.Query(query, filter, "dd")
 	if err != nil {
 		log.Error(err, log.Data{
 			"message": "Error running a search query.",
@@ -25,7 +26,7 @@ func Search(w http.ResponseWriter, req *http.Request) {
 		results.Results = make([]*model.Document, 0)
 	}
 
-	areaResults, err := SearchClient.Query(query, "areas")
+	areaResults, err := SearchClient.Query(query, "", "areas")
 	if err != nil {
 		log.Error(err, log.Data{
 			"message": "Error running a search query.",
