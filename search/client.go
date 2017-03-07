@@ -9,7 +9,7 @@ import (
 
 // QueryClient - interface for query functions on the search client.
 type QueryClient interface {
-	Query(term string, index string) (*model.SearchResponse, error)
+	Query(term string, filter string, index string) (*model.SearchResponse, error)
 	Suggest(term string) (*model.SearchResponse, error)
 	Stop()
 }
@@ -19,14 +19,23 @@ type elasticSearchClient struct {
 }
 
 // Query - run the given term as a search query
-func (elasticSearch *elasticSearchClient) Query(term string, index string) (*model.SearchResponse, error) {
+func (elasticSearch *elasticSearchClient) Query(term string, filter string, index string) (*model.SearchResponse, error) {
 
 	builder := elasticSearch.client.Search()
+	var query elastic.Query = nil
+	matchQuery := elastic.NewMatchQuery("body.geographic_hierarchy.area_types.id", filter)
+	termQuery := elastic.NewQueryStringQuery(term)
 
-	if len(term) > 0 {
-		query := elastic.NewQueryStringQuery(term)
-		builder.Query(query)
+	if len(filter) > 0 && len(term) > 0 {
+		filter := elastic.NewNestedQuery("body.geographic_hierarchy.area_types", matchQuery)
+		query = elastic.NewBoolQuery().Must(termQuery).Filter(filter)
+	} else if len(term) > 0 {
+		query = termQuery
+	} else if len(filter) > 0 && len(term) <= 0 {
+		query = elastic.NewNestedQuery("body.geographic_hierarchy.area_types", matchQuery)
 	}
+
+	builder.Query(query)
 
 	result, err := builder.
 		Index(index).
