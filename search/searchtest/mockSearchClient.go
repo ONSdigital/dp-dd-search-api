@@ -16,6 +16,7 @@ func NewMockSearchClient() *MockSearchClient {
 // MockSearchClient provides a mock implementation of QueryClient
 type MockSearchClient struct {
 	QueryRequests   []string
+	FilterRequests  []string
 	CustomQueryFunc func(term string, index string) (*model.SearchResponse, error)
 }
 
@@ -27,6 +28,7 @@ func (elasticSearch *MockSearchClient) Query(term string, filter string, index s
 	}
 
 	elasticSearch.QueryRequests = append(elasticSearch.QueryRequests, term)
+	elasticSearch.FilterRequests = append(elasticSearch.FilterRequests, filter)
 	return nil, nil
 }
 

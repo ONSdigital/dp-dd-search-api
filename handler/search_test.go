@@ -62,6 +62,47 @@ func Test(t *testing.T) {
 		})
 	})
 
+	Convey("Given a filter request", t, func() {
+
+		recorder := httptest.NewRecorder()
+		requestBodyReader := bytes.NewReader([]byte("{not a valid document}"))
+		request, _ := http.NewRequest("GET", "/search?filter=fil", requestBodyReader)
+
+		Convey("When the query handler is called", func() {
+
+			mockSearchClient := searchtest.NewMockSearchClient()
+			handler.SearchClient = mockSearchClient
+			handler.Search(recorder, request)
+
+			Convey("Then the search client is called with the expected parameters", func() {
+				So(recorder.Code, ShouldEqual, http.StatusOK)
+				So(mockSearchClient.FilterRequests[0], ShouldEqual, "fil")
+			})
+
+		})
+	})
+
+	Convey("Given a search and filter request", t, func() {
+
+		recorder := httptest.NewRecorder()
+		requestBodyReader := bytes.NewReader([]byte("{not a valid document}"))
+		request, _ := http.NewRequest("GET", "/search?q=term&filter=fil", requestBodyReader)
+
+		Convey("When the query handler is called", func() {
+
+			mockSearchClient := searchtest.NewMockSearchClient()
+			handler.SearchClient = mockSearchClient
+			handler.Search(recorder, request)
+
+			Convey("Then the search client is called with the expected parameters", func() {
+				So(recorder.Code, ShouldEqual, http.StatusOK)
+				So(mockSearchClient.QueryRequests[0], ShouldEqual, "term")
+				So(mockSearchClient.FilterRequests[0], ShouldEqual, "fil")
+			})
+
+		})
+	})
+
 	Convey("Given a search request", t, func() {
 
 		recorder := httptest.NewRecorder()
